@@ -75,3 +75,29 @@ async def get_tool_status(tool_name: str) -> dict[str, bool]:
         raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
     
     return {"enabled": ClientManager.is_tool_enabled(tool_name)}
+
+@router.post("/servers/{server_name}/disable")
+async def disable_server(server_name: str) -> dict[str, bool]:
+    """Disable a specific MCP server"""
+    if server_name not in ClientManager.clients:
+        raise HTTPException(status_code=404, detail=f"Server '{server_name}' not found")
+    
+    success = ClientManager.disable_client(server_name)
+    return {"success": success}
+
+@router.post("/servers/{server_name}/enable")
+async def enable_server(server_name: str) -> dict[str, bool]:
+    """Enable a specific MCP server"""
+    if server_name not in ClientManager.clients:
+        raise HTTPException(status_code=404, detail=f"Server '{server_name}' not found")
+    
+    success = ClientManager.enable_client(server_name)
+    return {"success": success}
+
+@router.get("/servers/{server_name}/status")
+async def get_server_status(server_name: str) -> dict[str, bool]:
+    """Get the enabled/disabled status of a server"""
+    if server_name not in ClientManager.clients:
+        raise HTTPException(status_code=404, detail=f"Server '{server_name}' not found")
+    
+    return {"enabled": ClientManager.is_client_enabled(server_name)}
