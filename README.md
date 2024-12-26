@@ -132,6 +132,10 @@ an example config.json file with most of the options explicitly set:
     },
     "logging": {
         "log_level": "DEBUG"
+    },
+    "ui": {
+        "bootstrap_css_url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
+        "bootstrap_js_url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
     }
 }
 ```
@@ -143,6 +147,7 @@ an example config.json file with most of the options explicitly set:
 | database         | Database configuration             |
 | network          | uvicorn network configuration      |
 | logging          | The logging configuration          |
+| ui              | UI configuration including CDN URLs |
 
 ## Support
 

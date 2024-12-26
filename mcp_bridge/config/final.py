@@ -60,6 +60,17 @@ class DatabaseConfig(BaseModel):
     )
 
 
+class UIConfig(BaseModel):
+    bootstrap_css_url: str = Field(
+        default="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
+        description="URL for Bootstrap CSS"
+    )
+    bootstrap_js_url: str = Field(
+        default="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js",
+        description="URL for Bootstrap JavaScript"
+    )
+
+
 class Settings(BaseSettings):
     inference_server: InferenceServer = Field(
         description="Inference server configuration"
@@ -82,6 +93,11 @@ class Settings(BaseSettings):
     database: DatabaseConfig = Field(
         default_factory=DatabaseConfig,
         description="Database configuration"
+    )
+
+    ui: UIConfig = Field(
+        default_factory=UIConfig,
+        description="UI configuration"
     )
 
     model_config = SettingsConfigDict(
