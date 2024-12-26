@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from .models import ChatCompletion, ToolCall
 from typing import Optional, List, Dict, Any
@@ -61,3 +61,13 @@ class ChatCompletionRepository:
         query = select(ChatCompletion).where(ChatCompletion.id == completion_id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def update_completion_response(self, completion_id: str, final_response: dict) -> None:
+        """Update the completion with the final response"""
+        stmt = (
+            update(ChatCompletion)
+            .where(ChatCompletion.id == completion_id)
+            .values(final_response=final_response)
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()

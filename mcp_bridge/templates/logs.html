@@ -69,13 +69,15 @@ async function showDetails(completionId) {
     
     let detailsHtml = `
         <div class="row">
-            <!-- Left Column -->
-            <div class="col-md-7 pe-md-2">
+            <!-- Request Column -->
+            <div class="col-md-4 pe-md-2">
                 <div class="card mb-3">
                     <div class="card-body">
+                        <h6>Request Details</h6>
                         <div class="mb-3">
-                            <h6>Model: ${details.model}</h6>
-                            <h6>Tokens: ${details.total_tokens} (${details.prompt_tokens} prompt, ${details.completion_tokens} completion)</h6>
+                            <strong>Model:</strong> ${details.model}<br>
+                            <strong>Tokens:</strong> ${details.total_tokens} 
+                            (${details.prompt_tokens} prompt, ${details.completion_tokens} completion)
                         </div>
                         
                         ${toolsList.length > 0 ? `
@@ -87,36 +89,27 @@ async function showDetails(completionId) {
                         </div>
                         ` : ''}
 
-                        <div class="accordion mb-3" id="requestAccordion">
+                        <div class="accordion mb-3">
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#requestCollapse">
+                                    <button class="accordion-button collapsed" type="button" 
+                                            data-bs-toggle="collapse" data-bs-target="#requestCollapse">
                                         View Full Request
                                     </button>
                                 </h2>
-                                <div id="requestCollapse" class="accordion-collapse collapse" data-bs-parent="#requestAccordion">
+                                <div id="requestCollapse" class="accordion-collapse collapse">
                                     <div class="accordion-body">
                                         <pre class="bg-light p-2"><code>${JSON.stringify(details.request, null, 2)}</code></pre>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <h6>Conversation:</h6>
-                        <div class="chat-messages">
-                            ${details.request.messages.map(msg => `
-                                <div class="message ${msg.role}">
-                                    <strong>${msg.role}:</strong>
-                                    <div class="content">${msg.content}</div>
-                                </div>
-                            `).join('')}
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column -->
-            <div class="col-md-5 ps-md-2">
+            <!-- Tool Calls Column -->
+            <div class="col-md-4 px-md-2">
                 <div class="card">
                     <div class="card-body">
                         <h6>Tool Calls</h6>
@@ -148,11 +141,34 @@ async function showDetails(completionId) {
                     </div>
                 </div>
             </div>
+
+            <!-- Conversation Column -->
+            <div class="col-md-4 ps-md-2">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Conversation</h6>
+                        <div class="chat-messages">
+                            ${details.request.messages.map(msg => `
+                                <div class="message ${msg.role}">
+                                    <strong>${msg.role}:</strong>
+                                    <div class="content">${msg.content}</div>
+                                </div>
+                            `).join('')}
+                            ${details.final_response ? `
+                                <div class="message final-response">
+                                    <strong>Final Response:</strong>
+                                    <div class="content">${details.final_response.content}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
     
     document.getElementById('completionDetails').innerHTML = detailsHtml;
-    document.getElementById('toolCalls').innerHTML = ''; // No longer needed
+    document.getElementById('toolCalls').innerHTML = '';
     
     new bootstrap.Modal(document.getElementById('detailsModal')).show();
 }
@@ -228,6 +244,21 @@ pre {
     .col-md-7, .col-md-5 {
         padding-left: 0.5rem !important;
         padding-right: 0.5rem !important;
+    }
+}
+
+.final-response {
+    background-color: #e3f2fd;
+    border-left: 4px solid #0d6efd;
+}
+
+.col-md-4 {
+    margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .col-md-4 {
+        margin-bottom: 0;
     }
 }
 </style>

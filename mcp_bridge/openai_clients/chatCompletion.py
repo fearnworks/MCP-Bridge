@@ -57,6 +57,7 @@ async def chat_completions(
     completion_id = str(uuid.uuid4())
     request = await chat_completion_add_tools(request)
     stored_completion = False
+    final_response = None
 
     async for db in get_db():
         repo = ChatCompletionRepository(db)
@@ -89,6 +90,9 @@ async def chat_completions(
 
             if response.choices[0].finish_reason.value in ["stop", "length"]:
                 logger.debug("no tool calls found")
+                final_response = response.choices[0].message
+                # Update the completion with the final response
+                await repo.update_completion_response(completion_id, final_response.model_dump())
                 return response
 
             logger.debug("tool calls found")
