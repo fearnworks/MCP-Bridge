@@ -1,7 +1,7 @@
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from .models import Base
 from .config import get_database_config
-from .engine_factory import DatabaseEngineFactory
+from loguru import logger
 
 class DatabaseSession:
     def __init__(self):
@@ -10,9 +10,31 @@ class DatabaseSession:
 
     async def initialize(self):
         config = get_database_config()
-        engine_instance = DatabaseEngineFactory.create_engine(config.type)
-        connection_params = config.model_dump(exclude_none=True)
-        self.engine = await engine_instance.create_engine(connection_params)
+        logger.info(f"Initializing database connection using {config['type'].upper()}")
+        logger.info(f"Database URL: {config['url']}")
+
+        # Base engine arguments
+        engine_args = {
+            'echo': False,
+        }
+
+        # Add pooling configuration only for PostgreSQL
+        if config['type'].lower() == 'postgres':
+            engine_args.update({
+                'pool_size': 5,
+                'max_overflow': 10
+            })
+
+        self.engine = create_async_engine(
+            config['url'],
+            **engine_args
+        )
+
+        # Create all tables
+        async with self.engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database tables created successfully")
+
         self.session_maker = async_sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
 
     async def get_session(self):

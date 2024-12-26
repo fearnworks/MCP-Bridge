@@ -119,6 +119,13 @@ an example config.json file with most of the options explicitly set:
             ]
         }
     },
+    "database": {
+        "type": "sqlite",
+        "sqlite": {
+            "database": "monitoring.db"
+        },
+
+    },
     "network": {
         "host": "0.0.0.0",
         "port": 9090
@@ -133,6 +140,7 @@ an example config.json file with most of the options explicitly set:
 | ---------------- | ---------------------------------- |
 | inference_server | The inference server configuration |
 | mcp_servers      | The MCP servers configuration      |
+| database         | Database configuration             |
 | network          | uvicorn network configuration      |
 | logging          | The logging configuration          |
 

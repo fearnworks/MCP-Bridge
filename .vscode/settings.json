@@ -5,6 +5,16 @@
             "driver": "SQLite",
             "database": "${workspaceFolder:MCP-Bridge}/monitoring.db",
             "name": "monitoring"
+        },
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 45432,
+            "driver": "PostgreSQL",
+            "name": "mcpb_pg",
+            "database": "monitoring",
+            "username": "postgres",
+            "password": "password"
         }
     ]
 }

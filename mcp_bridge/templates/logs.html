@@ -63,39 +63,172 @@ async function showDetails(completionId) {
     const response = await fetch(`/logs/${completionId}`);
     const data = await response.json();
     
-    // Format completion details
     const details = data.completion;
+    const tools = details.request.tools || [];
+    const toolsList = tools.map(tool => tool.function?.name || tool.type).filter(Boolean);
+    
     let detailsHtml = `
-        <div class="card mb-3">
-            <div class="card-body">
-                <h6>Request</h6>
-                <pre class="bg-light p-2"><code>${JSON.stringify(details.request, null, 2)}</code></pre>
-                <h6>Response</h6>
-                <pre class="bg-light p-2"><code>${JSON.stringify(details.final_response, null, 2)}</code></pre>
+        <div class="row">
+            <!-- Left Column -->
+            <div class="col-md-7 pe-md-2">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6>Model: ${details.model}</h6>
+                            <h6>Tokens: ${details.total_tokens} (${details.prompt_tokens} prompt, ${details.completion_tokens} completion)</h6>
+                        </div>
+                        
+                        ${toolsList.length > 0 ? `
+                        <div class="mb-3">
+                            <h6>Available Tools:</h6>
+                            <div class="badge-group">
+                                ${toolsList.map(tool => `<span class="badge bg-secondary me-1">${tool}</span>`).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="accordion mb-3" id="requestAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#requestCollapse">
+                                        View Full Request
+                                    </button>
+                                </h2>
+                                <div id="requestCollapse" class="accordion-collapse collapse" data-bs-parent="#requestAccordion">
+                                    <div class="accordion-body">
+                                        <pre class="bg-light p-2"><code>${JSON.stringify(details.request, null, 2)}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h6>Conversation:</h6>
+                        <div class="chat-messages">
+                            ${details.request.messages.map(msg => `
+                                <div class="message ${msg.role}">
+                                    <strong>${msg.role}:</strong>
+                                    <div class="content">${msg.content}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-md-5 ps-md-2">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Tool Calls</h6>
+                        <div class="tool-calls">
+                            ${data.tool_calls.map(tool => {
+                                let arguments = tool.arguments;
+                                let result = tool.result;
+                                
+                                try {
+                                    if (typeof arguments === 'string') arguments = JSON.parse(arguments);
+                                    if (typeof result === 'string') result = JSON.parse(result);
+                                } catch (e) {
+                                    console.error('Failed to parse tool data:', e);
+                                }
+                                
+                                return `
+                                    <div class="tool-call mb-3">
+                                        <h6 class="tool-name">${tool.tool_name}</h6>
+                                        <div class="tool-details">
+                                            <strong>Arguments:</strong>
+                                            <pre class="bg-light p-2 mb-2"><code>${JSON.stringify(arguments, null, 2)}</code></pre>
+                                            <strong>Result:</strong>
+                                            <pre class="bg-light p-2"><code>${JSON.stringify(result, null, 2)}</code></pre>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
     
-    // Format tool calls
-    let toolsHtml = '';
-    for (const tool of data.tool_calls) {
-        toolsHtml += `
-            <div class="card mb-2">
-                <div class="card-body">
-                    <h6>${tool.tool_name}</h6>
-                    <strong>Arguments:</strong>
-                    <pre class="bg-light p-2"><code>${JSON.stringify(JSON.parse(tool.arguments), null, 2)}</code></pre>
-                    <strong>Result:</strong>
-                    <pre class="bg-light p-2"><code>${JSON.stringify(JSON.parse(tool.result), null, 2)}</code></pre>
-                </div>
-            </div>
-        `;
-    }
-    
     document.getElementById('completionDetails').innerHTML = detailsHtml;
-    document.getElementById('toolCalls').innerHTML = toolsHtml;
+    document.getElementById('toolCalls').innerHTML = ''; // No longer needed
     
     new bootstrap.Modal(document.getElementById('detailsModal')).show();
 }
 </script>
+
+<style>
+.modal-dialog {
+    max-width: 90%;
+    margin: 1.75rem auto;
+}
+
+.chat-messages {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.tool-calls {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.message {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.message.user {
+    background-color: #f8f9fa;
+}
+
+.message.assistant {
+    background-color: #e9ecef;
+}
+
+.message .content {
+    white-space: pre-wrap;
+    margin-top: 0.5rem;
+}
+
+.badge-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.tool-call {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1rem;
+}
+
+.tool-call:last-child {
+    border-bottom: none;
+}
+
+.tool-name {
+    color: #0d6efd;
+    margin-bottom: 0.5rem;
+}
+
+pre {
+    margin-bottom: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+    .modal-dialog {
+        max-width: 95%;
+        margin: 1rem auto;
+    }
+    
+    .col-md-7, .col-md-5 {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+}
+</style>
 {% endblock %}

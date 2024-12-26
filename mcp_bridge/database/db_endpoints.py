@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
-import aiosqlite
-import json
-from datetime import datetime
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from mcp_clients.McpClientManager import ClientManager
+from database.session import get_db
+from database.models import ChatCompletion, ToolCall
 
 router = APIRouter()
 templates = Jinja2Templates(directory="mcp_bridge/templates")
@@ -39,52 +41,79 @@ async def index(request: Request):
     )
 
 @router.get("/logs", response_class=HTMLResponse)
-async def view_logs(request: Request):
-    async with aiosqlite.connect("monitoring.db") as db:
-        db.row_factory = aiosqlite.Row
-        
-        # Get completions with tool counts
-        cursor = await db.execute("""
-            SELECT 
-                c.*,
-                COUNT(t.id) as tool_count
-            FROM chat_completions c
-            LEFT JOIN tool_calls t ON c.id = t.chat_completion_id
-            GROUP BY c.id
-            ORDER BY c.timestamp DESC
-            LIMIT 100
-        """)
-        
-        completions = await cursor.fetchall()
-        
-        return templates.TemplateResponse(
-            "logs.html",
-            {
-                "request": request,
-                "completions": [dict(row) for row in completions]
-            }
-        )
+async def view_logs(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    # Get completions with tool counts using SQLAlchemy
+    stmt = (
+        select(ChatCompletion)
+        .options(selectinload(ChatCompletion.tool_calls))
+        .order_by(ChatCompletion.timestamp.desc())
+        .limit(100)
+    )
+    
+    result = await db.execute(stmt)
+    completions = result.scalars().all()
+    
+    return templates.TemplateResponse(
+        "logs.html",
+        {
+            "request": request,
+            "completions": [
+                {
+                    "id": c.id,
+                    "timestamp": c.timestamp,
+                    "model": c.model,
+                    "total_tokens": c.total_tokens,
+                    "tool_count": len(c.tool_calls) if c.tool_calls else 0
+                }
+                for c in completions
+            ]
+        }
+    )
 
 @router.get("/logs/{completion_id}")
-async def get_completion_details(completion_id: str):
-    async with aiosqlite.connect("monitoring.db") as db:
-        db.row_factory = aiosqlite.Row
-        
-        # Get completion details
-        cursor = await db.execute(
-            "SELECT * FROM chat_completions WHERE id = ?",
-            (completion_id,)
+async def get_completion_details(
+    completion_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    # Get completion with related tool calls
+    stmt = (
+        select(ChatCompletion)
+        .options(selectinload(ChatCompletion.tool_calls))
+        .where(ChatCompletion.id == completion_id)
+    )
+    
+    result = await db.execute(stmt)
+    completion = result.scalar_one_or_none()
+    
+    if not completion:
+        return JSONResponse(
+            {"error": f"Completion '{completion_id}' not found"},
+            status_code=404
         )
-        completion = await cursor.fetchone()
-        
-        # Get tool calls
-        cursor = await db.execute(
-            "SELECT * FROM tool_calls WHERE chat_completion_id = ?",
-            (completion_id,)
-        )
-        tool_calls = await cursor.fetchall()
-        
-        return JSONResponse({
-            "completion": dict(completion),
-            "tool_calls": [dict(tool) for tool in tool_calls]
-        })
+    
+    # Format the response to match the expected structure
+    return JSONResponse({
+        "completion": {
+            "id": completion.id,
+            "timestamp": completion.timestamp.isoformat(),
+            "model": completion.model,
+            "request": completion.request,
+            "final_response": completion.final_response,
+            "total_tokens": completion.total_tokens,
+            "completion_tokens": completion.completion_tokens,
+            "prompt_tokens": completion.prompt_tokens,
+        },
+        "tool_calls": [
+            {
+                "id": t.id,
+                "tool_name": t.tool_name,
+                "arguments": t.arguments,  # This should already be a JSON string
+                "result": t.result,       # This should be a dict
+                "timestamp": t.timestamp.isoformat() if t.timestamp else None
+            }
+            for t in sorted(completion.tool_calls, key=lambda x: x.timestamp or "")
+        ]
+    })

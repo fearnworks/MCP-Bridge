@@ -1,0 +1,17 @@
+name: mcp_bridge_db
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: monitoring
+      POSTGRES_USER: postgres 
+      POSTGRES_PASSWORD: password
+      POSTGRES_PORT: 45432
+    volumes:
+      - mcp_bridge_postgres_data:/var/lib/postgresql/data
+    ports:
+      - 45432:5432
+
+volumes:
+  mcp_bridge_postgres_data:
+  

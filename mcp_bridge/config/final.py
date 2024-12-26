@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal, Union, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel, Field
 
@@ -33,6 +33,33 @@ class Network(BaseModel):
     port: int = Field(8000, description="Port of the network")
 
 
+class SQLiteConfig(BaseModel):
+    database: str = Field(default="monitoring.db", description="SQLite database path")
+
+
+class PostgresConfig(BaseModel):
+    host: str = Field(default="localhost", description="PostgreSQL host")
+    port: int = Field(default=45432, description="PostgreSQL port")
+    username: str = Field(default="postgres", description="PostgreSQL username")
+    password: str = Field(default="password", description="PostgreSQL password")
+    database: str = Field(default="monitoring", description="PostgreSQL database name")
+
+
+class DatabaseConfig(BaseModel):
+    type: Literal["sqlite", "postgres"] = Field(
+        default="sqlite",
+        description="Database type to use"
+    )
+    sqlite: SQLiteConfig = Field(
+        default_factory=SQLiteConfig,
+        description="SQLite configuration"
+    )
+    postgres: Optional[PostgresConfig] = Field(
+        default_factory=PostgresConfig,
+        description="PostgreSQL configuration"
+    )
+
+
 class Settings(BaseSettings):
     inference_server: InferenceServer = Field(
         description="Inference server configuration"
@@ -50,6 +77,11 @@ class Settings(BaseSettings):
     network: Network = Field(
         default_factory=lambda: Network.model_construct(),
         description="network config",
+    )
+
+    database: DatabaseConfig = Field(
+        default_factory=DatabaseConfig,
+        description="Database configuration"
     )
 
     model_config = SettingsConfigDict(
