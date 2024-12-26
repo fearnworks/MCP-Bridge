@@ -24,12 +24,12 @@ pip install asyncpg
 
 1. Verify database connection:
 ```bash
-docker compose -f mcp_bridge/database/postgres/docker-compose.yml ps
+docker compose -f mcp_bridge/database/postgres/postgres-compose.yml ps
 ```
 
 2. View database logs:
 ```bash
-docker compose -f mcp_bridge/database/postgres/docker-compose.yml logs postgres
+docker compose -f mcp_bridge/database/postgres/postgres-compose.yml logs postgres
 ```
 
 To add with defaults from the compose file add this section to your config.json:
