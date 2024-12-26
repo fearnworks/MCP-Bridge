@@ -12,6 +12,8 @@ client_types = Union[StdioClient, SseClient]
 
 class MCPClientManager:
     clients: dict[str, client_types] = {}
+    disabled_tools: set[str] = set()
+    disabled_clients: set[str] = set()
 
     async def initialize(self):
         """Initialize the MCP Client Manager and start all clients"""
@@ -43,7 +45,8 @@ class MCPClientManager:
         return self.clients[server_name]
 
     def get_clients(self):
-        return list(self.clients.items())
+        return [(name, client) for name, client in self.clients.items() 
+                if self.is_client_enabled(name)]
 
     async def get_client_from_tool(self, tool: str):
         for name, client in self.get_clients():
@@ -51,6 +54,36 @@ class MCPClientManager:
             for client_tool in list_tools.tools:
                 if client_tool.name == tool:
                     return client
+
+    def is_tool_enabled(self, tool_name: str) -> bool:
+        return tool_name not in self.disabled_tools
+
+    def disable_tool(self, tool_name: str) -> bool:
+        if tool_name not in self.disabled_tools:
+            self.disabled_tools.add(tool_name)
+            return True
+        return False
+
+    def enable_tool(self, tool_name: str) -> bool:
+        if tool_name in self.disabled_tools:
+            self.disabled_tools.remove(tool_name)
+            return True
+        return False
+
+    def is_client_enabled(self, client_name: str) -> bool:
+        return client_name not in self.disabled_clients
+
+    def disable_client(self, client_name: str) -> bool:
+        if client_name not in self.disabled_clients and client_name in self.clients:
+            self.disabled_clients.add(client_name)
+            return True
+        return False
+
+    def enable_client(self, client_name: str) -> bool:
+        if client_name in self.disabled_clients:
+            self.disabled_clients.remove(client_name)
+            return True
+        return False
 
 
 ClientManager = MCPClientManager()

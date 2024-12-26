@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2>Chat Completion Logs</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Model</th>
+                        <th>Total Tokens</th>
+                        <th>Tools Used</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for completion in completions %}
+                    <tr>
+                        <td>{{ completion.timestamp }}</td>
+                        <td>{{ completion.model }}</td>
+                        <td>{{ completion.total_tokens }}</td>
+                        <td>{{ completion.tool_count }} tools</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" 
+                                    onclick="showDetails('{{ completion.id }}')">
+                                View Details
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for details -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chat Completion Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="completionDetails"></div>
+                <h6 class="mt-4">Tool Calls</h6>
+                <div id="toolCalls"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function showDetails(completionId) {
+    const response = await fetch(`/logs/${completionId}`);
+    const data = await response.json();
+    
+    // Format completion details
+    const details = data.completion;
+    let detailsHtml = `
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6>Request</h6>
+                <pre class="bg-light p-2"><code>${JSON.stringify(details.request, null, 2)}</code></pre>
+                <h6>Response</h6>
+                <pre class="bg-light p-2"><code>${JSON.stringify(details.final_response, null, 2)}</code></pre>
+            </div>
+        </div>
+    `;
+    
+    // Format tool calls
+    let toolsHtml = '';
+    for (const tool of data.tool_calls) {
+        toolsHtml += `
+            <div class="card mb-2">
+                <div class="card-body">
+                    <h6>${tool.tool_name}</h6>
+                    <strong>Arguments:</strong>
+                    <pre class="bg-light p-2"><code>${JSON.stringify(JSON.parse(tool.arguments), null, 2)}</code></pre>
+                    <strong>Result:</strong>
+                    <pre class="bg-light p-2"><code>${JSON.stringify(JSON.parse(tool.result), null, 2)}</code></pre>
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('completionDetails').innerHTML = detailsHtml;
+    document.getElementById('toolCalls').innerHTML = toolsHtml;
+    
+    new bootstrap.Modal(document.getElementById('detailsModal')).show();
+}
+</script>
+{% endblock %}
