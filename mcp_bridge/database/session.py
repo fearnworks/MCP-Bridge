@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from .models import Base
-from .config import get_database_config
+from .db_config import get_database_config
 from loguru import logger
 
 class DatabaseSession:

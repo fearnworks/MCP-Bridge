@@ -9,7 +9,7 @@ from database.session import get_db
 from database.models import ChatCompletion, ToolCall
 
 router = APIRouter()
-templates = Jinja2Templates(directory="mcp_bridge/templates")
+templates = Jinja2Templates(directory="mcp_bridge/web/templates")
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -31,7 +31,7 @@ async def index(request: Request):
             tool_status[tool.name] = ClientManager.is_tool_enabled(tool.name)
 
     return templates.TemplateResponse(
-        "index.html",
+        "index.jinja",
         {
             "request": request,
             "servers": servers,
@@ -57,7 +57,7 @@ async def view_logs(
     completions = result.scalars().all()
     
     return templates.TemplateResponse(
-        "logs.html",
+        "logs.jinja",
         {
             "request": request,
             "completions": [
